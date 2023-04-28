@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>fight!</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="script.js" type="text/javascript"></script>
+
+    <!--red container-->
+    <div class="container" style="position: relative; display: inline-block">
+      <!--smaller red container-->
+      <div
+        style="
+          position: absolute;
+          display: flex;
+          align-items: center;
+          width: 100%;
+          padding: 20px;
+        "
+      >
+        <!--player health-->
+        <div style="position: relative; height: 30px; width: 100%">
+          <div
+            style="
+              background-color: yellowgreen;
+              height: 30px;
+              display: flex;
+              justify-content: flex-end;
+            "
+          ></div>
+          <div
+            id="playerHealth"
+            style="
+              position: absolute;
+              background-color: blue;
+              top: 0;
+              right: 0;
+              bottom: 0;
+              width: 100%;
+            "
+          ></div>
+        </div>
+        <!--timer-->
+        <div
+          id="timer"
+          style="
+            background-color: red;
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          2000
+        </div>
+        <!--enemy health-->
+        <div style="position: relative; height: 30px; width: 100%">
+          <div style="background-color: yellowgreen; height: 30px"></div>
+          <div
+            id="enemyHealth"
+            style="
+              position: absolute;
+              background-color: blue;
+              top: 0;
+              right: 0;
+              bottom: 0;
+              left: 0;
+            "
+          ></div>
+        </div>
+      </div>
+      <div
+        id="displayText"
+        style="
+          position: absolute;
+          color: white;
+          align-items: center;
+          justify-content: center;
+          top: 0;
+          right: 0;
+          left: 0;
+          bottom: 0;
+          display: none;
+        "
+      >
+        Tie
+      </div>
+      <canvas> </canvas>
+    </div>
+  </body>
+
+  <script>
+    const canvas = document.querySelector("canvas");
+    const c = canvas.getContext("2d");
+
+    canvas.width = 1024;
+    canvas.height = 576;
+
+    c.fillRect(0, 0, canvas.width, canvas.height);
+
+    const gravity = 0.6;
+    class Sprite {
+      constructor({ position, velocity, color, offset }) {
+        this.position = position;
+        this.velocity = velocity;
+        this.width = 50;
+        this.height = 150;
+        this.lastKey;
+        this.color = color;
+        this.health = 100;
+        this.attackbox = {
+          position: {
+            x: this.position.x,
+            y: this.position.y,
+          },
+          width: 100,
+          height: 50,
+          offset,
+        };
+        this.isAttacking;
+      }
+
+      draw() {
+        c.fillStyle = this.color;
+        c.fillRect(this.position.x, this.position.y, this.width, this.height);
+
+        //attackbox
+        if (this.isAttacking) {
+          c.fillStyle = "yellow";
+          c.fillRect(
+            this.attackbox.position.x,
+            this.attackbox.position.y,
+            this.attackbox.width,
+            this.attackbox.height
+          );
+        }
+      }
+
+      update() {
+        this.draw();
+
+        this.attackbox.position.x = this.position.x - this.attackbox.offset.x;
+        this.attackbox.position.y = this.position.y - this.attackbox.offset.y;
+
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+
+        if (this.position.y + this.height + this.velocity.y >= canvas.height) {
+          this.velocity.y = 0;
+        } else {
+          this.velocity.y += gravity;
+        }
+      }
+
+      attack() {
+        this.isAttacking = true;
+        setTimeout(() => {
+          this.isAttacking = false;
+        }, 400);
+      }
+    }
+
+    const player = new Sprite({
+      position: { x: 0, y: 10 },
+      velocity: { x: 0, y: 10 },
+      color: "blue",
+      offset: {
+        x: 0,
+        y: 0,
+      },
+    });
+
+    const enemy = new Sprite({
+      position: { x: 400, y: 100 },
+      velocity: { x: 0, y: 10 },
+      color: "red",
+      offset: {
+        x: 50,
+        y: 0,
+      },
+    });
+
+    const keys = {
+      //player keys
+      a: {
+        pressed: false,
+      },
+      d: {
+        pressed: false,
+      },
+      w: {
+        pressed: false,
+      },
+      //enemy keys
+      ArrowRight: {
+        pressed: false,
+      },
+      ArrowLeft: {
+        pressed: false,
+      },
+      ArrowUp: {
+        pressed: false,
+      },
+    };
+
+    //this function checks if there's collision between two "attack" rectangle
+    function rectangleCollision({ rect1, rect2 }) {
+      return (
+        player.attackbox.position.x + player.attackbox.width >=
+          rect2.position.x &&
+        player.attackbox.position.x <= rect2.position.x + rect2.width &&
+        player.attackbox.height + player.attackbox.position.y >=
+          rect2.position.y &&
+        player.attackbox.position.y <= enemy.position.y + enemy.height
+      );
+    }
+
+    function determineWinner({ player, enemy, timerId }) {
+      clearTimeout(timerId)
+        let displayText = document.querySelector("#displayText");
+      displayText.style.display = "flex";
+
+      if (player.health === enemy.health) {
+        displayText.innerHTML = "tie";
+      } else if (player.health > enemy.health) {
+        displayText.innerHTML = "Player 1 wins";
+      } else {
+        displayText.innerHTML = "Player 2 wins";
+      }
+    }
+
+    let timer = 60;
+    let timerId
+    function decreaseTimer() {
+      if (timer > 0) {
+        timerId=setTimeout(decreaseTimer, 1000);
+        timer--;
+        document.querySelector("#timer").innerHTML = timer;
+      }
+      if (timer === 0) {
+        determineWinner({ player, enemy, timerId });
+      }
+    }
+
+    decreaseTimer();
+
+    function animate() {
+      window.requestAnimationFrame(animate);
+      c.fillStyle = "black";
+      c.fillRect(0, 0, canvas.width, canvas.height);
+      player.update();
+      enemy.update();
+
+      player.velocity.x = 0;
+      //   enemy.velocity.x = 0;
+
+      // player movement
+      if (keys.a.pressed && player.lastKey === "a" && player.position.x > 0) {
+        player.velocity.x = -5;
+      } else if (
+        keys.d.pressed &&
+        player.lastKey === "d" &&
+        player.position.x < canvas.width
+      ) {
+        player.velocity.x = 5;
+      } else {
+        player.velocity.x = 0;
+      }
+      // enemy movement
+      if (
+        keys.ArrowLeft.pressed &&
+        enemy.lastKey === "ArrowLeft" &&
+        enemy.position.x > 0
+      ) {
+        enemy.velocity.x = -5;
+      } else if (
+        keys.ArrowRight.pressed &&
+        enemy.lastKey === "ArrowRight" &&
+        enemy.position.x < canvas.width
+      ) {
+        enemy.velocity.x = 5;
+      } else {
+        enemy.velocity.x = 0;
+      }
+
+      //is anyone attacking?
+      if (
+        player.isAttacking &&
+        rectangleCollision({ rect1: player, rect2: enemy })
+      ) {
+        player.isAttacking = false;
+        enemy.health -= 20;
+        document.querySelector("#enemyHealth").style.width = enemy.health + "%";
+      }
+      if (
+        enemy.isAttacking &&
+        rectangleCollision({ rect1: enemy, rect2: player })
+      ) {
+        enemy.isAttacking = false;
+        player.health -= 20;
+        document.querySelector("#playerHealth").style.width =
+          player.health + "%";
+      }
+
+      //if a player wins before the timer is 0
+      if (enemy.health <= 0 || player.health <= 0) {
+        determineWinner({ player, enemy, timerId });
+      }
+    }
+
+    animate();
+
+    addEventListener("keydown", (event) => {
+      switch (event.key) {
+        //player keys
+        case "d":
+          keys.d.pressed = true;
+          player.lastKey = "d";
+          break;
+        case "a":
+          keys.a.pressed = true;
+          player.lastKey = "a";
+          break;
+        case "w":
+          player.velocity.y = -21;
+          break;
+        case " ":
+          event.preventDefault();
+          player.attack();
+          break;
+
+        //enemy keys
+        case "ArrowRight":
+          keys.ArrowRight.pressed = true;
+          enemy.lastKey = "ArrowRight";
+          break;
+        case "ArrowLeft":
+          keys.ArrowLeft.pressed = true;
+          enemy.lastKey = "ArrowLeft";
+          break;
+        case "ArrowUp":
+          enemy.velocity.y = -21;
+          break;
+        case "ArrowDown":
+          enemy.attack();
+      }
+    });
+    addEventListener("keyup", (event) => {
+      switch (event.key) {
+        //player keys
+        case "d":
+          keys.d.pressed = false;
+          break;
+        case "a":
+          keys.a.pressed = false;
+          break;
+
+        //enemy keys
+        case "ArrowRight":
+          keys.ArrowRight.pressed = false;
+          break;
+        case "ArrowLeft":
+          keys.ArrowLeft.pressed = false;
+          break;
+      }
+    });
+  </script>
+</html>
