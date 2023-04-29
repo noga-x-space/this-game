@@ -60,6 +60,11 @@ class Fighter extends Sprite {
     framesNumber = 1,
     offset = { x: 0, y: 0 },
     sprites,
+    attackbox = {
+      offset: {},
+      width: undefined,
+      height: undefined,
+    },
   }) {
     super({
       position,
@@ -69,11 +74,6 @@ class Fighter extends Sprite {
       offset,
     });
 
-    //animation
-    this.currentFrame = 0; //what frame are we on
-    this.framesElapsed = 0; //total number of frames that were elapsed over
-    this.framesHold = 5; // how many frames should we go through before changing the current one
-
     //character details and actions
     this.velocity = velocity;
     this.width = 50;
@@ -81,14 +81,15 @@ class Fighter extends Sprite {
     this.lastKey;
     this.color = color;
     this.health = 100;
+
     this.attackbox = {
       position: {
         x: this.position.x,
         y: this.position.y,
       },
-      width: 100,
-      height: 50,
-      offset,
+      offset: attackbox.offset,
+      width: attackbox.width,
+      height: attackbox.height,
     };
     this.isAttacking;
     this.sprites = sprites;
@@ -97,6 +98,11 @@ class Fighter extends Sprite {
       sprites[sprite].image = new Image();
       sprites[sprite].image.src = sprites[sprite].imageSrc;
     }
+
+    //animation
+    this.currentFrame = 0; //what frame are we on
+    this.framesElapsed = 0; //total number of frames that were elapsed over
+    this.framesHold = 5; // how many frames should we go through before changing the current one
   }
 
   update() {
@@ -104,8 +110,16 @@ class Fighter extends Sprite {
 
     this.animateFrames();
 
-    this.attackbox.position.x = this.position.x - this.attackbox.offset.x;
-    this.attackbox.position.y = this.position.y - this.attackbox.offset.y;
+    this.attackbox.position.x = this.position.x + this.attackbox.offset.x;
+    this.attackbox.position.y = this.position.y + this.attackbox.offset.y;
+
+    //drawing attack boxes
+    // c.fillRect(
+    //   this.attackbox.position.x,
+    //   this.attackbox.position.y,
+    //   this.attackbox.width,
+    //   this.attackbox.height
+    // );
 
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
@@ -120,17 +134,22 @@ class Fighter extends Sprite {
   }
 
   attack() {
-    this.isAttacking = true;
     this.switchSprites("attack1");
-    setTimeout(() => {
-      this.isAttacking = false;
-    }, 400);
+    this.isAttacking = true;
   }
 
+  takeHit(){
+    this.switchSprites("takeHit")
+    this.health -= 20;
+  }
   switchSprites(sprite) {
+    //overriding all animations with attack/hit
     if (
       this.image === this.sprites.attack1.image &&
       this.currentFrame < this.sprites.attack1.framesNumber - 1
+      ||
+      this.image ===this.sprites.takeHit.image&&
+      this.currentFrame<this.sprites.takeHit.currentFrame-1
     )
       return;
     switch (sprite) {
@@ -170,6 +189,12 @@ class Fighter extends Sprite {
           this.currentFrame = 0;
         }
         break;
+        case "takeHit":
+            if (this.image !== this.sprites.takeHit.image) {
+                this.image = this.sprites.takeHit.image;
+                this.framesNumber = this.sprites.takeHit.framesNumber;
+                this.currentFrame = 0;
+              }
     }
   }
 }
