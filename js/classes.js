@@ -81,6 +81,7 @@ class Fighter extends Sprite {
     this.lastKey;
     this.color = color;
     this.health = 100;
+    this.lost = false;
 
     this.attackbox = {
       position: {
@@ -107,8 +108,7 @@ class Fighter extends Sprite {
 
   update() {
     this.draw();
-
-    this.animateFrames();
+    if (!this.lost) this.animateFrames();
 
     this.attackbox.position.x = this.position.x + this.attackbox.offset.x;
     this.attackbox.position.y = this.position.y + this.attackbox.offset.y;
@@ -138,20 +138,44 @@ class Fighter extends Sprite {
     this.isAttacking = true;
   }
 
-  takeHit(){
-    this.switchSprites("takeHit")
+  takeHit() {
     this.health -= 20;
+
+    if (this.health <= 0) {
+      this.switchSprites("lose");
+    } else {
+      this.switchSprites("takeHit");
+    }
   }
+
   switchSprites(sprite) {
-    //overriding all animations with attack/hit
+    //overriding all animations when health<0
+    if (this.image === this.sprites.lose.image) {
+      //     console.log(this.currentFrame, this.sprites.lose.framesNumber)
+      if (this.currentFrame === this.sprites.lose.framesNumber - 1)
+        //     this.lost = true;
+        //   return;  // set currentFrame to last frame of the sprite
+        // this.currentFrame = this.sprites.lose.framesNumber - 1;
+        //   console.log(this.currentFrame, this.sprites.lose.framesNumber);
+
+        this.lost = true;
+      return;
+    }
+
+    //overriding all animations when attacking
     if (
       this.image === this.sprites.attack1.image &&
       this.currentFrame < this.sprites.attack1.framesNumber - 1
-      ||
-      this.image ===this.sprites.takeHit.image&&
-      this.currentFrame<this.sprites.takeHit.currentFrame-1
     )
       return;
+
+    //overriding all animations when getting hit
+    if (
+      this.image === this.sprites.takeHit.image &&
+      this.currentFrame < this.sprites.takeHit.framesNumber - 1
+    )
+      return;
+
     switch (sprite) {
       case "idle":
         if (this.image !== this.sprites.idle.image) {
@@ -189,12 +213,20 @@ class Fighter extends Sprite {
           this.currentFrame = 0;
         }
         break;
-        case "takeHit":
-            if (this.image !== this.sprites.takeHit.image) {
-                this.image = this.sprites.takeHit.image;
-                this.framesNumber = this.sprites.takeHit.framesNumber;
-                this.currentFrame = 0;
-              }
+      case "takeHit":
+        if (this.image !== this.sprites.takeHit.image) {
+          this.image = this.sprites.takeHit.image;
+          this.framesNumber = this.sprites.takeHit.framesNumber;
+          this.currentFrame = 0;
+        }
+        break;
+      case "lose":
+        if (this.image !== this.sprites.lose.image) {
+          this.image = this.sprites.lose.image;
+          this.framesNumber = this.sprites.lose.framesNumber;
+          this.framesCurrent = 0;
+        }
+        break;
     }
   }
 }
